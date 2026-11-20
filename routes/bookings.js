@@ -269,4 +269,32 @@ router.patch('/:id/status', verifyToken, async (req, res) => {
   }
 });
 
+// DELETE /api/bookings/:id - Admin: Cancel and delete rental booking
+router.delete('/:id', verifyToken, verifyAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const db = getDB();
+    const bookingsCollection = db.collection('bookings');
+
+    let booking = await bookingsCollection.findOne({ _id: id });
+    if (!booking && ObjectId.isValid(id)) {
+      booking = await bookingsCollection.findOne({ _id: new ObjectId(id) });
+    }
+
+    if (!booking) {
+      return res.status(404).json({ success: false, message: 'Booking not found.' });
+    }
+
+    await bookingsCollection.deleteOne({ _id: booking._id });
+
+    return res.json({
+      success: true,
+      message: 'Rental booking record removed successfully by Admin.'
+    });
+  } catch (err) {
+    console.error('Delete booking error:', err);
+    return res.status(500).json({ success: false, message: 'Server error removing rental booking.' });
+  }
+});
+
 module.exports = router;
