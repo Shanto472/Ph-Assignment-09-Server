@@ -44,10 +44,12 @@ app.get('/api/reviews', async (req, res) => {
 const authRoutes = require('./routes/auth');
 const userRoutes = require('./routes/users');
 const equipmentRoutes = require('./routes/equipment');
+const favoriteRoutes = require('./routes/favorites');
 
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/equipment', equipmentRoutes);
+app.use('/api/favorites', favoriteRoutes);
 
 // Seed function for default admin and initial equipment
 async function seedInitialData() {
