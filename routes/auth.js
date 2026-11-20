@@ -3,6 +3,7 @@ const router = express.Router();
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { getDB } = require('../config/db');
+const { verifyToken } = require('../middlewares/auth');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'super_secret_jwt_key_equiprent_2026_secure';
 
@@ -198,6 +199,36 @@ router.post('/google', async (req, res) => {
   } catch (err) {
     console.error('Google Auth Error:', err);
     return res.status(500).json({ success: false, message: 'Server error during Google login.' });
+  }
+});
+
+// GET /api/auth/me - Get current authenticated user profile
+router.get('/me', verifyToken, async (req, res) => {
+  try {
+    const db = getDB();
+    const usersCollection = db.collection('users');
+    const user = await usersCollection.findOne({ email: req.user.email.toLowerCase() });
+
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User account not found.' });
+    }
+
+    return res.json({
+      success: true,
+      user: {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        photoURL: user.photoURL,
+        role: user.role || 'Customer',
+        phone: user.phone || '',
+        address: user.address || '',
+        createdAt: user.createdAt
+      }
+    });
+  } catch (err) {
+    console.error('Fetch me error:', err);
+    return res.status(500).json({ success: false, message: 'Server error fetching user profile.' });
   }
 });
 
