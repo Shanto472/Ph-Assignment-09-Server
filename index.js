@@ -4,6 +4,7 @@ const bcrypt = require('bcryptjs');
 require('dotenv').config();
 const { connectDB, getDB } = require('./config/db');
 const { initialEquipment, initialReviews } = require('./data/seedData');
+const { initBookingCron } = require('./cron/bookingCron');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -121,6 +122,7 @@ async function seedInitialData() {
 async function startServer() {
   await connectDB();
   await seedInitialData();
+  initBookingCron();
   app.listen(PORT, () => {
     console.log(` EquipRent Server listening on port ${PORT}`);
   });

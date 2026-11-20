@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { getDB, ObjectId } = require('../config/db');
 const { verifyToken, verifyCustomer, verifyOwner, verifyAdmin } = require('../middlewares/auth');
+const { checkAndCompleteExpiredBookings } = require('../cron/bookingCron');
 
 // Helper: calculate duration between dates in days
 function calculateRentalDurationDays(startDate, endDate) {
@@ -294,6 +295,20 @@ router.delete('/:id', verifyToken, verifyAdmin, async (req, res) => {
   } catch (err) {
     console.error('Delete booking error:', err);
     return res.status(500).json({ success: false, message: 'Server error removing rental booking.' });
+  }
+});
+
+// POST /api/bookings/sync-expired - Trigger cron sync manually
+router.post('/sync-expired', verifyToken, verifyAdmin, async (req, res) => {
+  try {
+    const result = await checkAndCompleteExpiredBookings();
+    return res.json({
+      success: true,
+      message: `Expired rentals sync complete. ${result.updated || 0} booking(s) updated to completed.`,
+      result
+    });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: 'Sync error.' });
   }
 });
 
