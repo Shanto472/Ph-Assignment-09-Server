@@ -342,6 +342,10 @@ router.delete('/:id', verifyToken, verifyOwner, async (req, res) => {
       return res.status(403).json({ success: false, message: 'You are not authorized to delete this equipment.' });
     }
 
+    // Also remove from any customer favorites to keep state consistent
+    const favoritesCollection = db.collection('favorites');
+    await favoritesCollection.deleteOne({ equipmentId: String(item._id) });
+
     await equipmentCollection.deleteOne({ _id: item._id });
 
     return res.json({
