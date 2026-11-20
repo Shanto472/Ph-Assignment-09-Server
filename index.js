@@ -46,12 +46,14 @@ const userRoutes = require('./routes/users');
 const equipmentRoutes = require('./routes/equipment');
 const favoriteRoutes = require('./routes/favorites');
 const bookingRoutes = require('./routes/bookings');
+const paymentRoutes = require('./routes/payments');
 
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/equipment', equipmentRoutes);
 app.use('/api/favorites', favoriteRoutes);
 app.use('/api/bookings', bookingRoutes);
+app.use('/api/payments', paymentRoutes);
 
 // Seed function for default admin and initial equipment
 async function seedInitialData() {
