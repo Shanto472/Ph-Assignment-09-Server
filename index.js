@@ -1,7 +1,9 @@
 const express = require('express');
 const cors = require('cors');
+const bcrypt = require('bcryptjs');
 require('dotenv').config();
-const { connectDB } = require('./config/db');
+const { connectDB, getDB } = require('./config/db');
+const { initialEquipment, initialReviews } = require('./data/seedData');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -26,15 +28,91 @@ app.get('/', (req, res) => {
   });
 });
 
+// Reviews public endpoint (for Customer Reviews Section)
+app.get('/api/reviews', async (req, res) => {
+  try {
+    const db = getDB();
+    const reviewsCollection = db.collection('reviews');
+    const reviews = await (await reviewsCollection.find({})).toArray();
+    res.json({ success: true, reviews });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Error fetching reviews' });
+  }
+});
+
 // Routes
 const authRoutes = require('./routes/auth');
 const userRoutes = require('./routes/users');
+const equipmentRoutes = require('./routes/equipment');
+
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/equipment', equipmentRoutes);
+
+// Seed function for default admin and initial equipment
+async function seedInitialData() {
+  try {
+    const db = getDB();
+    const usersCollection = db.collection('users');
+    const equipmentCollection = db.collection('equipment');
+    const reviewsCollection = db.collection('reviews');
+
+    // Seed Admin
+    const adminExists = await usersCollection.findOne({ email: 'admin@equiprent.com' });
+    if (!adminExists) {
+      const adminPass = await bcrypt.hash('Admin123456', 10);
+      await usersCollection.insertOne({
+        name: 'EquipRent SuperAdmin',
+        email: 'admin@equiprent.com',
+        password: adminPass,
+        photoURL: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
+        role: 'Admin',
+        phone: '+1 (800) 555-ADMIN',
+        address: 'EquipRent HQ, San Francisco, CA',
+        createdAt: new Date().toISOString()
+      });
+      console.log(' Admin user seeded: admin@equiprent.com / Admin123456');
+    }
+
+    // Seed Owner
+    const ownerExists = await usersCollection.findOne({ email: 'owner@equiprent.com' });
+    if (!ownerExists) {
+      const ownerPass = await bcrypt.hash('Owner123456', 10);
+      await usersCollection.insertOne({
+        name: 'HeavyMachinery Pro Ltd.',
+        email: 'owner@equiprent.com',
+        password: ownerPass,
+        photoURL: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150',
+        role: 'Owner',
+        phone: '+1 (512) 555-0199',
+        address: '100 Industrial Pkwy, Austin, TX',
+        createdAt: new Date().toISOString()
+      });
+      console.log(' Owner user seeded: owner@equiprent.com / Owner123456');
+    }
+
+    // Seed Equipment if empty
+    const equipCount = await equipmentCollection.countDocuments({});
+    if (equipCount === 0) {
+      await equipmentCollection.insertMany(initialEquipment);
+      console.log(` Seeded ${initialEquipment.length} equipment items.`);
+    }
+
+    // Seed Reviews if empty
+    const reviewsCount = await reviewsCollection.countDocuments({});
+    if (reviewsCount === 0) {
+      await reviewsCollection.insertMany(initialReviews);
+      console.log(` Seeded ${initialReviews.length} customer reviews.`);
+    }
+  } catch (err) {
+    console.error('Data seeding notice:', err.message);
+  }
+}
 
 // Start server
 async function startServer() {
   await connectDB();
+  await seedInitialData();
   app.listen(PORT, () => {
     console.log(` EquipRent Server listening on port ${PORT}`);
   });
