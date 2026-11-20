@@ -186,6 +186,48 @@ router.get('/', async (req, res) => {
   }
 });
 
+// GET /api/equipment/meta/filters - Get metadata for filters and category counts
+router.get('/meta/filters', async (req, res) => {
+  try {
+    const db = getDB();
+    const equipmentCollection = db.collection('equipment');
+
+    const approvedItems = await (
+      await equipmentCollection.find({ status: 'approved' })
+    ).toArray();
+
+    const categories = [
+      'Construction Equipment',
+      'Photography Equipment',
+      'Vehicles & Transportation',
+      'Agriculture Equipment',
+      'Electronics',
+      'Event Equipment'
+    ];
+
+    const categoryCounts = {};
+    categories.forEach(cat => {
+      categoryCounts[cat] = approvedItems.filter(item => item.category === cat).length;
+    });
+
+    const prices = approvedItems.map(i => Number(i.rentalPrice) || 0);
+    const minPrice = prices.length ? Math.min(...prices) : 0;
+    const maxPrice = prices.length ? Math.max(...prices) : 1000;
+
+    return res.json({
+      success: true,
+      categories,
+      categoryCounts,
+      totalApproved: approvedItems.length,
+      minPrice,
+      maxPrice
+    });
+  } catch (err) {
+    console.error('Meta filters error:', err);
+    return res.status(500).json({ success: false, message: 'Server error retrieving filter metadata.' });
+  }
+});
+
 // GET /api/equipment/owner/my - Equipment added by logged-in owner
 router.get('/owner/my', verifyToken, verifyOwner, async (req, res) => {
   try {
