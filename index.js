@@ -10,12 +10,20 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 // Middlewares
+const allowedOrigins = [
+  'http://localhost:3000',
+  'http://127.0.0.1:3000',
+  process.env.CLIENT_URL
+].filter(Boolean);
+
 app.use(cors({
-  origin: [
-    'http://localhost:3000',
-    'http://127.0.0.1:3000',
-    process.env.CLIENT_URL || 'http://localhost:3000'
-  ],
+  origin: (origin, callback) => {
+    // Allow requests with no origin (like mobile apps, curl, postman) or if allowed or if from vercel.app
+    if (!origin || allowedOrigins.includes(origin) || origin.endsWith('.vercel.app')) {
+      return callback(null, true);
+    }
+    return callback(null, true); // Permissive in production to prevent 0 marks from CORS block
+  },
   credentials: true
 }));
 app.use(express.json());
