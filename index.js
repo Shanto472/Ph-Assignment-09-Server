@@ -38,7 +38,7 @@ app.get('/', (req, res) => {
 });
 
 // Reviews public endpoint (for Customer Reviews Section)
-app.get('/api/reviews', async (req, res) => {
+const reviewsHandler = async (req, res) => {
   try {
     const db = getDB();
     const reviewsCollection = db.collection('reviews');
@@ -47,9 +47,11 @@ app.get('/api/reviews', async (req, res) => {
   } catch (err) {
     res.status(500).json({ success: false, message: 'Error fetching reviews' });
   }
-});
+};
+app.get('/api/reviews', reviewsHandler);
+app.get('/reviews', reviewsHandler);
 
-// Routes
+// Routes - Mounted both with and without '/api' for complete deployment resilience
 const authRoutes = require('./routes/auth');
 const userRoutes = require('./routes/users');
 const equipmentRoutes = require('./routes/equipment');
@@ -59,14 +61,27 @@ const paymentRoutes = require('./routes/payments');
 const analyticsRoutes = require('./routes/analytics');
 
 app.use('/api/auth', authRoutes);
-app.use('/api/users', userRoutes);
-app.use('/api/equipment', equipmentRoutes);
-app.use('/api/favorites', favoriteRoutes);
-app.use('/api/bookings', bookingRoutes);
-app.use('/api/payments', paymentRoutes);
-app.use('/api/analytics', analyticsRoutes);
+app.use('/auth', authRoutes);
 
-// Seed function for default admin and initial equipment
+app.use('/api/users', userRoutes);
+app.use('/users', userRoutes);
+
+app.use('/api/equipment', equipmentRoutes);
+app.use('/equipment', equipmentRoutes);
+
+app.use('/api/favorites', favoriteRoutes);
+app.use('/favorites', favoriteRoutes);
+
+app.use('/api/bookings', bookingRoutes);
+app.use('/bookings', bookingRoutes);
+
+app.use('/api/payments', paymentRoutes);
+app.use('/payments', paymentRoutes);
+
+app.use('/api/analytics', analyticsRoutes);
+app.use('/analytics', analyticsRoutes);
+
+// Seed function for default admin, owner, customer and initial equipment
 async function seedInitialData() {
   try {
     const db = getDB();
@@ -106,6 +121,23 @@ async function seedInitialData() {
         createdAt: new Date().toISOString()
       });
       console.log(' Owner user seeded: owner@equiprent.com / Owner123456');
+    }
+
+    // Seed Customer
+    const customerExists = await usersCollection.findOne({ email: 'customer@equiprent.com' });
+    if (!customerExists) {
+      const customerPass = await bcrypt.hash('Customer123456', 10);
+      await usersCollection.insertOne({
+        name: 'Alex Rivera (Customer)',
+        email: 'customer@equiprent.com',
+        password: customerPass,
+        photoURL: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150',
+        role: 'Customer',
+        phone: '+1 (555) 019-2834',
+        address: '1204 Industrial Way, Austin, TX',
+        createdAt: new Date().toISOString()
+      });
+      console.log(' Customer user seeded: customer@equiprent.com / Customer123456');
     }
 
     // Seed Equipment if empty
